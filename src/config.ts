@@ -245,20 +245,12 @@ function checkFileIsPrivate(path: string): boolean {
 }
 
 /**
- * Loads environment variables from ".craft.env" files in certain locations
+ * Reads configuration variables from "~/.craft.env" (if it exists).
  *
- * The following two places are checked:
- * - The user's home directory
- * - The configuration file directory
- *
- * @param overwriteExisting If set to true, overwrite the existing environment variables
+ * @returns An object containing configuration values, or undefined if
+ * "~/.craft.env" does not exist
  */
-export function readEnvironmentConfig(
-  overwriteExisting: boolean = false
-): void {
-  let newEnv = {} as any;
-
-  // Read from home dir
+export function getConfigFromHomeDir(): { [key: string]: string } | undefined {
   const homedirEnvFile = join(homedir(), ENV_FILE_NAME);
   if (existsSync(homedirEnvFile)) {
     logger.debug(
@@ -267,46 +259,89 @@ export function readEnvironmentConfig(
     checkFileIsPrivate(homedirEnvFile);
     const homedirEnv = {};
     nvar({ path: homedirEnvFile, target: homedirEnv });
-    newEnv = { ...newEnv, ...homedirEnv };
     logger.debug(
       `Read the following variables from ${homedirEnvFile}: ${Object.keys(
         homedirEnv
       ).toString()}`
     );
+    return homedirEnv;
   } else {
     logger.debug(
       `No environment file found in the home directory: ${homedirEnvFile}`
     );
+    return undefined;
   }
+}
 
-  // Read from the directory where the configuration file is located
-
+/**
+ * Reads configuration variables from "<project-root>/.craft.env" (if it
+ * exists).
+ *
+ * For purposes of this function <project-root> is whatever folder contains
+ * ".craft.yaml".
+ *
+ * @returns An object containing configuration values, or undefined if
+ * "<project-root>/.craft.env" does not exist
+ */
+export function getConfigFromProject(): { [key: string]: string } | undefined {
   // Apparently this is the best we can do to make getConfigFileDir mockable ;(
   // See https://github.com/facebook/jest/issues/936 for more info
   const configFileDir = exports.getConfigFileDir() as string | undefined;
-  const configDirEnvFile = configFileDir && join(configFileDir, ENV_FILE_NAME);
-  if (!configDirEnvFile) {
+
+  // if we can't find .craft.yml, we don't know where to look for the env file,
+  // so bail now
+  if (!configFileDir) {
     logger.debug(`No configuration file (${CONFIG_FILE_NAME}) found!`);
-  } else if (configDirEnvFile && existsSync(configDirEnvFile)) {
+    return undefined;
+  }
+
+  const configDirEnvFile = join(configFileDir, ENV_FILE_NAME);
+  if (existsSync(configDirEnvFile)) {
     logger.debug(
       `Found environment file in the configuration directory: ${configDirEnvFile}`
     );
     checkFileIsPrivate(configDirEnvFile);
     const configDirEnv = {};
     nvar({ path: configDirEnvFile, target: configDirEnv });
-    newEnv = { ...newEnv, ...configDirEnv };
     logger.debug(
       `Read the following variables from ${configDirEnvFile}: ${Object.keys(
         configDirEnv
       ).toString()}`
     );
+    return configDirEnv;
   } else {
     logger.debug(
       `No environment file found in the configuration directory: ${configDirEnvFile}`
     );
+    return undefined;
   }
+}
 
-  // Add non-existing values to env
+/**
+ * Reads config variables from ".craft.env" files in certain locations, and
+ * loads them as environment variables.
+ *
+ * The following two places are checked:
+ * - The user's home directory
+ * - The configuration file directory
+ *
+ * @param overwriteExisting If set to true, overwrite the existing environment
+ * variables
+ */
+export function readEnvironmentConfig(
+  overwriteExisting: boolean = false
+): void {
+  let newEnv = {} as any;
+
+  // Read from home dir
+  const homedirEnv = getConfigFromHomeDir() || {};
+  newEnv = { ...newEnv, ...homedirEnv };
+
+  // Read from the directory where the configuration file is located
+  const configDirEnv = getConfigFromProject() || {};
+  newEnv = { ...newEnv, ...configDirEnv };
+
+  // Add values to env (skip existing ones unless overwriteExisting is true)
   for (const key of Object.keys(newEnv)) {
     if (overwriteExisting || process.env[key] === undefined) {
       process.env[key] = newEnv[key];
