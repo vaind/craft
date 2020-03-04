@@ -6,6 +6,7 @@ import { emojify } from 'node-emoji';
 import { format } from 'util';
 
 import { addBreadcrumb } from './utils/sentry';
+import { getConfigFromHomeDir, getConfigFromProject } from './config';
 
 /**
  * Prepends the message with a prefix and formats its arguments.
@@ -120,6 +121,9 @@ export const LOG_LEVELS: { [key: string]: number } = {
   TRACE: 4,
 };
 
+// TODO kmclb: consola lists info as 3, not 2 - do we care?
+// https://github.com/nuxt/consola/blob/HEAD/src/types.js
+
 /** Log entry as passed to consola reporters */
 interface LogEntry {
   /** Entry type */
@@ -145,15 +149,35 @@ class SentryBreadcrumbReporter {
 }
 
 /**
- * Read logging level from the environment
+ * Reads logging level from the environment or config file, if any.
+ *
+ * As with other config options, environment variables beat values in a
+ * project-level config file, and project level config values beat values in a
+ * home directory config file.
+ *
+ * @returns The log level, or undefined if not configured.
  */
-function getLogLevel(): number {
-  const logLevelName = process.env.CRAFT_LOG_LEVEL || '';
-  const logLevelNumber = LOG_LEVELS[logLevelName.toUpperCase()];
-  return logLevelNumber || consola.level;
+function getLogLevelFromConfig(): string | undefined {
+  if (process.env.CRAFT_LOG_LEVEL) {
+    return process.env.CRAFT_LOG_LEVEL;
+  }
+
+  const projectLevelConfig = getConfigFromProject();
+  if (projectLevelConfig && projectLevelConfig.CRAFT_LOG_LEVEL) {
+    return projectLevelConfig.CRAFT_LOG_LEVEL;
+  }
+
+  const homeDirConfig = getConfigFromHomeDir();
+  if (homeDirConfig && homeDirConfig.CRAFT_LOG_LEVEL) {
+    return homeDirConfig.CRAFT_LOG_LEVEL;
+  }
+
+  return undefined;
 }
 
-consola.level = getLogLevel();
+const logLevelName = getLogLevelFromConfig() || 'success';
+consola.level = LOG_LEVELS[logLevelName.toUpperCase()];
+
 consola.reporters.push(new SentryBreadcrumbReporter());
 
 export { consola as logger };
