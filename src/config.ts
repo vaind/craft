@@ -283,7 +283,7 @@ export function readEnvironmentConfig(
 
   // Apparently this is the best we can do to make getConfigFileDir mockable ;(
   // See https://github.com/facebook/jest/issues/936 for more info
-  const configFileDir = exports.getConfigFileDir() as string | undefined;
+  const configFileDir = exports.getConfigFileDir();
   const configDirEnvFile = configFileDir && join(configFileDir, ENV_FILE_NAME);
   if (!configDirEnvFile) {
     logger.debug(`No configuration file (${CONFIG_FILE_NAME}) found!`);

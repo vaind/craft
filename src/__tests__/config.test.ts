@@ -4,26 +4,23 @@
  */
 
 import { readFileSync, writeFileSync } from 'fs';
-import { homedir } from 'os';
+import * as os from 'os';
 import { dirname, join } from 'path';
 
 import { compile } from 'json-schema-to-typescript';
 
-import {
+import * as config from '../config';
+const {
   CONFIG_FILE_NAME,
   ENV_FILE_NAME,
   getProjectConfigSchema,
   readEnvironmentConfig,
   validateConfiguration,
-} from '../config';
+} = config;
 import { withTempDir } from '../utils/files';
 
-jest.mock('os', () => ({ ...require.requireActual('os'), homedir: jest.fn() }));
-
-// Mock getConfigFileDir
-// tslint:disable-next-line:no-var-requires
-const configModule = require('../config');
-const getConfigFileDirMock = (configModule.getConfigFileDir = jest.fn());
+const getConfigFileDirMock = jest.spyOn(config, 'getConfigFileDir');
+const homedirMock = jest.spyOn(os, 'homedir');
 
 const configSchemaDir = join(dirname(__dirname), 'schemas');
 const configGeneratedTypes = join(configSchemaDir, 'project_config.ts');
@@ -80,9 +77,6 @@ describe('getProjectConfigSchema', () => {
 });
 
 describe('readEnvironmentConfig', () => {
-  // const getConfigFileDirMock = getConfigFileDir as jest.Mock;
-  const homedirMock = homedir as jest.Mock;
-
   const invalidDir = '/invalid/invalid';
 
   function writeConfigFile(directory: string): void {
@@ -94,6 +88,7 @@ describe('readEnvironmentConfig', () => {
     delete process.env.TEST_BLA;
     jest.clearAllMocks();
   });
+
   test('calls homedir/findConfigFile', async () => {
     process.env.TEST_BLA = '123';
 
