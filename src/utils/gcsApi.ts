@@ -44,7 +44,7 @@ export interface GCSBucketConfig {
 /**
  * Bucket path with associated parameters
  */
-export interface DestinationPath {
+export interface UploadDestinationPath {
   /** Path inside the bucket to which files will be uploaded */
   path: string;
   /** Metadata to be associated with the files uploaded the path */
@@ -236,7 +236,7 @@ export class CraftGCSClient {
    */
   public async uploadArtifacts(
     artifacts: CraftArtifact[],
-    destinationPath: DestinationPath
+    destinationPath: UploadDestinationPath
   ): Promise<{}> {
     if (!destinationPath || !destinationPath.path) {
       return Promise.reject(
