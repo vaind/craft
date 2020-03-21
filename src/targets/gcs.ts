@@ -236,9 +236,19 @@ export class GcsTarget extends BaseTarget {
         // this adds a `path` property to the PathTemplate object, with
         // `version` and `revision` values filled in
         this.materializePathTemplate(pathTemplate, version, revision);
-        await this.gcsClient.uploadArtifacts(
-          artifacts,
-          pathTemplate as UploadDestinationPath
+
+        // now that we know the `path` property is filled in, we can officially
+        // convert our template to a legit UploadDestinationPath
+        const destinationPath = pathTemplate as UploadDestinationPath;
+
+        // check `destinationPath`'s validity and log information (required
+        // before `uploadArtifact` can be run on a given path)
+        this.gcsClient.beforeUploadToPath(artifacts, destinationPath);
+
+        await Promise.all(
+          artifacts.map(artifact =>
+            this.gcsClient.uploadArtifact(artifact, destinationPath)
+          )
         );
       }
     );
