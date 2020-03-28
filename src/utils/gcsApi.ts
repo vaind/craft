@@ -11,6 +11,7 @@ import { isDryRun } from './helpers';
 import { logger as loggerRaw } from '../logger';
 import { reportError, ConfigurationError } from './errors';
 import { checkEnvForPrerequisite, RequiredConfigVar } from './env';
+import { RemoteArtifact } from '../artifact_providers/base';
 
 const DEFAULT_MAX_RETRIES = 5;
 export const DEFAULT_UPLOAD_METADATA = { cacheControl: `public, max-age=300` };
@@ -233,5 +234,49 @@ export class CraftGCSClient {
     } else {
       logger.info(`[dry-run] Skipping upload for \`${filename}\``);
     }
+  }
+
+  /**
+   * Downloads a file stored on the artifact provider
+   *
+   * @param artifact The artifact to download
+   * @param destinationDirectory Path to directory into which to download the
+   * file
+   * @returns Path to the downloaded file
+   */
+  public async downloadArtifact(
+    artifact: RemoteArtifact,
+    destinationDirectory: string
+  ): Promise<string> {
+    const { filename } = artifact;
+    const { downloadFilepath } = artifact.storedFile;
+
+    if (!fs.existsSync(destinationDirectory)) {
+      reportError(
+        `Unable to download \`${filename}\` to ` +
+          `\`${destinationDirectory}\` - directory does not exist!`
+      );
+    }
+
+    if (!isDryRun()) {
+      logger.debug(
+        `Attempting to download \`${filename}\` to \`${destinationDirectory}\`.`
+      );
+
+      try {
+        await this.bucket.file(downloadFilepath).download({
+          destination: path.join(destinationDirectory, filename),
+        });
+      } catch (err) {
+        reportError(`Encountered an error while downloading \`${filename}\`:
+          ${err}`);
+      }
+
+      logger.debug(`Success!`);
+    } else {
+      logger.info(`[dry-run] Skipping download for \`${filename}\``);
+    }
+
+    return path.join(destinationDirectory, filename);
   }
 }
