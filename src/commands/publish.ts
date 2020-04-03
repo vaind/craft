@@ -426,9 +426,17 @@ export async function publishMain(argv: PublishOptions): Promise<any> {
   logger.debug('Revision to publish: ', revision);
 
   const statusProvider = getStatusProviderFromConfig();
-  logger.info(`Using "${statusProvider.constructor.name}" for status checks`);
+  const statusProviderName = statusProvider.constructor.name;
   const artifactProvider = getArtifactProviderFromConfig();
-  logger.info(`Using "${artifactProvider.constructor.name}" for artifacts`);
+  const artifactProviderName = artifactProvider.constructor.name;
+  logger.info(' ');
+  logger.info(`Using "${statusProviderName}" for status checks`);
+  logger.info(`Using "${artifactProviderName}" for artifacts`);
+  if (statusProviderName !== 'zeus' && artifactProviderName !== 'zeus') {
+    logger.info(' ');
+    logger.info("    Zeus? Who's Zeus?");
+    logger.info(' ');
+  }
 
   // Check status of all CI builds linked to the revision
   await checkRevisionStatus(statusProvider, revision, argv.noStatusCheck);
