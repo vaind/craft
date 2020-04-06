@@ -158,6 +158,7 @@ describe('env utils functions', () => {
     }
 
     test.only('calls homedir/findConfigFile', async () => {
+      jest.unmock('fs');
       process.env.TEST_BLA = '123';
 
       homedirMock.mockReturnValue(invalidDir);
