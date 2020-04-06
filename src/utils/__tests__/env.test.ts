@@ -15,6 +15,7 @@ import { withTempDir } from '../files';
 jest.mock('../../logger');
 const homedirMock = jest.spyOn(os, 'homedir');
 const getConfigFileDirMock = jest.spyOn(config, 'getConfigFileDir');
+jest.unmock('fs');
 
 describe('env utils functions', () => {
   const cleanEnv = { ...process.env };
@@ -158,7 +159,6 @@ describe('env utils functions', () => {
     }
 
     test.only('calls homedir/findConfigFile', async () => {
-      jest.unmock('fs');
       process.env.TEST_BLA = '123';
 
       homedirMock.mockReturnValue(invalidDir);
