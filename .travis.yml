@@ -4,14 +4,14 @@ cache: yarn
 git:
   depth: 1
 
-branches:
-  only:
-    - master
-    - /^release\/.+$/
+# branches:
+#   only:
+#     - master
+#     - /^release\/.+$/
 
 node_js:
-  - "8"
-  - "10"
+  - '8'
+  - '10'
 
 matrix:
   include:

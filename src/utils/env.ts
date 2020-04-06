@@ -108,6 +108,8 @@ export function readEnvironmentConfig(
 
   // Read from home dir
   const homedirEnvFile = join(homedir(), ENV_FILE_NAME);
+  console.log('existssync is ', existsSync);
+  console.log('existsSync(homedirEnvFile) is ', existsSync(homedirEnvFile));
   if (existsSync(homedirEnvFile)) {
     logger.debug(
       `Found environment file in the home directory: ${homedirEnvFile}`
