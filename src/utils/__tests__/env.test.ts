@@ -157,7 +157,7 @@ describe('env utils functions', () => {
       writeFileSync(outConfigFile, '');
     }
 
-    test('calls homedir/findConfigFile', async () => {
+    test.only('calls homedir/findConfigFile', async () => {
       process.env.TEST_BLA = '123';
 
       homedirMock.mockReturnValue(invalidDir);
