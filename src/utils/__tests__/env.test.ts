@@ -15,7 +15,7 @@ import { withTempDir } from '../files';
 jest.mock('../../logger');
 const homedirMock = jest.spyOn(os, 'homedir');
 const getConfigFileDirMock = jest.spyOn(config, 'getConfigFileDir');
-jest.unmock('fs');
+// jest.unmock('fs');
 
 describe('env utils functions', () => {
   const cleanEnv = { ...process.env };
