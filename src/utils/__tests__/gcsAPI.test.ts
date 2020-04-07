@@ -44,7 +44,7 @@ jest.mock('@google-cloud/storage', () => ({
 const syncExistsSpy = jest.spyOn(fs, 'existsSync');
 // skip checking whether our fake files and directory exist - it doesn't matter,
 // since we’re not actually going to attempt to do anything with them
-// syncExistsSpy.mockReturnValue(true);
+syncExistsSpy.mockReturnValue(true);
 
 const cleanEnv = { ...process.env };
 
