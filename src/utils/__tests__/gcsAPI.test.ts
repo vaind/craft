@@ -6,7 +6,7 @@ import {
   CraftGCSClient,
   DEFAULT_UPLOAD_METADATA,
 } from '../gcsApi';
-import { withTempFile } from '../files';
+import { withTempFile, withTempDir } from '../files';
 
 import {
   dogsGHOrg,
@@ -18,7 +18,6 @@ import {
   squirrelSimulatorLocalPath,
   squirrelSimulatorBucketPath,
   squirrelSimulatorArtifact,
-  tempDownloadDirectory,
   squirrelRepo,
   squirrelSimulatorCommit,
   squirrelStatsGCSFileObj,
@@ -42,9 +41,6 @@ jest.mock('@google-cloud/storage', () => ({
 }));
 
 const syncExistsSpy = jest.spyOn(fs, 'existsSync');
-// skip checking whether our fake files and directory exist - it doesn't matter,
-// since we’re not actually going to attempt to do anything with them
-syncExistsSpy.mockReturnValue(true);
 
 const cleanEnv = { ...process.env };
 
@@ -233,56 +229,59 @@ describe('gcsApi module', () => {
 
     describe('download', () => {
       it('calls the GCS library download method with the right parameters', async () => {
-        await client.downloadArtifact(
-          squirrelStatsArtifact,
-          tempDownloadDirectory
-        );
+        await withTempDir(async tempDownloadDirectory => {
+          await client.downloadArtifact(
+            squirrelStatsArtifact,
+            tempDownloadDirectory
+          );
 
-        const { filename } = squirrelStatsArtifact;
+          const { filename } = squirrelStatsArtifact;
 
-        expect(mockGCSDownload).toHaveBeenCalledWith({
-          destination: path.join(tempDownloadDirectory, filename),
+          expect(mockGCSDownload).toHaveBeenCalledWith({
+            destination: path.join(tempDownloadDirectory, filename),
+          });
         });
       });
 
       it("errors if download directory doesn't exist", async () => {
-        // make sure it thinks it doesn't exist
+        // make sure it won't find the directory
         syncExistsSpy.mockReturnValueOnce(false);
 
         await expect(
-          client.downloadArtifact(
-            squirrelSimulatorArtifact,
-            tempDownloadDirectory
-          )
+          client.downloadArtifact(squirrelSimulatorArtifact, './iDontExist/')
         ).rejects.toThrowError(`directory does not exist!`);
       });
 
       it('errors if GCS download goes sideways', async () => {
-        mockGCSDownload.mockImplementation(() => {
-          throw new Error('The squirrel got away!');
+        await withTempDir(async tempDownloadDirectory => {
+          mockGCSDownload.mockImplementation(() => {
+            throw new Error('The squirrel got away!');
+          });
+
+          const { filename } = squirrelSimulatorArtifact;
+
+          await expect(
+            client.downloadArtifact(
+              squirrelSimulatorArtifact,
+              tempDownloadDirectory
+            )
+          ).rejects.toThrowError(
+            `Encountered an error while downloading \`${filename}\``
+          );
         });
-
-        const { filename } = squirrelSimulatorArtifact;
-
-        await expect(
-          client.downloadArtifact(
-            squirrelSimulatorArtifact,
-            tempDownloadDirectory
-          )
-        ).rejects.toThrowError(
-          `Encountered an error while downloading \`${filename}\``
-        );
       });
 
       it("doesn't upload anything in dry run mode", async () => {
-        process.env.DRY_RUN = 'true';
+        await withTempDir(async tempDownloadDirectory => {
+          process.env.DRY_RUN = 'true';
 
-        await client.downloadArtifact(
-          squirrelStatsArtifact,
-          tempDownloadDirectory
-        );
+          await client.downloadArtifact(
+            squirrelStatsArtifact,
+            tempDownloadDirectory
+          );
 
-        expect(mockGCSDownload).not.toHaveBeenCalled();
+          expect(mockGCSDownload).not.toHaveBeenCalled();
+        });
       });
     }); // end describe('download')
 
