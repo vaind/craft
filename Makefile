@@ -10,5 +10,9 @@ lint: build
 	yarn lint
 .PHONY: lint
 
+docker: build
+	docker build .
+.PHONY: docker
+
 check: test lint
 .PHONY: check
